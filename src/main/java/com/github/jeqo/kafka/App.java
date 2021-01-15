@@ -93,7 +93,7 @@ public class App {
         return lags;
     }
 
-    static Pattern pattern = Pattern.compile("connector-consumer-(\\w+)-(\\d)-");
+    static Pattern pattern = Pattern.compile("connector-consumer-(\\w+)-(\\d)-.*");
 
     static HttpClient httpClient = HttpClient.newBuilder().build();
 
