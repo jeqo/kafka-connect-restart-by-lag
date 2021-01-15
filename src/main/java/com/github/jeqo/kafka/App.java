@@ -98,8 +98,8 @@ public class App {
     static HttpClient httpClient = HttpClient.newBuilder().build();
 
     void restartTask(String connectorName, int task) throws IOException, InterruptedException {
-        var url = URI.create(config.kafkaConnect.url + "/connectors/" + connectorName + "/tasks/" + task);
-        LOG.info("Restarting connector task {}-{}", connectorName, task);
+        var url = URI.create(config.kafkaConnect.url + "/connectors/" + connectorName + "/tasks/" + task + "/restart");
+        LOG.info("Restarting connector task with url {}", url.toString());
         var httpRequest = HttpRequest.newBuilder()
                 .POST(HttpRequest.BodyPublishers.noBody())
                 .uri(url)
@@ -123,10 +123,14 @@ public class App {
         });
 
         for (String instance : lags.keySet()) {
-            Matcher matcher = pattern.matcher(instance);
-            var connectorName = matcher.group(1);
-            var task = Integer.parseInt(matcher.group(2));
-            restartTask(connectorName, task);
+            var matcher = pattern.matcher(instance);
+            if (matcher.matches()) {
+                var connectorName = matcher.group(1);
+                var task = Integer.parseInt(matcher.group(2));
+                restartTask(connectorName, task);
+            } else {
+                LOG.warn("Connector {} does not match pattern {}", instance, pattern.pattern());
+            }
         }
     }
 
