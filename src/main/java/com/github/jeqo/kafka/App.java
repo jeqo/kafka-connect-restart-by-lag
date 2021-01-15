@@ -156,6 +156,8 @@ public class App {
                 //Duration.ofMinutes(1),
                 new Config.KafkaConnect(url));
 
+        LOG.info("Config: \n{}", config);
+
         var app = new App(config);
         app.run();
     }

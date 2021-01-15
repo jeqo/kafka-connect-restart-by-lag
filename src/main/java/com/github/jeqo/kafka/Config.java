@@ -19,11 +19,28 @@ public class Config {
         this.kafkaConnect = kafkaConnect;
     }
 
+    @Override
+    public String toString() {
+        return "Config{" +
+                "kafka=" + kafka +
+                ", connectGroupPrefix='" + connectGroupPrefix + '\'' +
+                ", maxLag=" + maxLag +
+                ", kafkaConnect=" + kafkaConnect +
+                '}';
+    }
+
     static class Kafka {
         final String bootstrapServers;
 
         Kafka(String bootstrapServers) {
             this.bootstrapServers = bootstrapServers;
+        }
+
+        @Override
+        public String toString() {
+            return "Kafka{" +
+                    "bootstrapServers='" + bootstrapServers + '\'' +
+                    '}';
         }
     }
 
@@ -32,6 +49,13 @@ public class Config {
 
         KafkaConnect(String url) {
             this.url = url;
+        }
+
+        @Override
+        public String toString() {
+            return "KafkaConnect{" +
+                    "url='" + url + '\'' +
+                    '}';
         }
     }
 }
