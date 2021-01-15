@@ -13,7 +13,6 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -109,6 +108,28 @@ public class App {
         LOG.info("Result restart {}-{}", response.statusCode(), response.body());
     }
 
+    void run() throws IOException, InterruptedException {
+        //Sample output:
+        // connector-consumer-SplunkSink_group_santander-1-07838100-36fa-40dc-bd4b-d5a556c3b7e8 ->
+        //   GROUP_SANTANDER_SPLUNK_SINK_JSON-6 : 68403
+        //   GROUP_SANTANDER_SPLUNK_SINK_JSON-5 : 68949
+        //   GROUP_SANTANDER_SPLUNK_SINK_JSON-7 : 64913
+        //   GROUP_SANTANDER_SPLUNK_SINK_JSON-4 : 62396
+        var lags = lags();
+        lags.forEach((s, topicPartitionLongMap) -> {
+            System.out.println(s + " -> ");
+            topicPartitionLongMap.forEach((topicPartition, aLong) ->
+                    System.out.println("  " + topicPartition + " : " + aLong));
+        });
+
+        for (String instance : lags.keySet()) {
+            Matcher matcher = pattern.matcher(instance);
+            var connectorName = matcher.group(1);
+            var task = Integer.parseInt(matcher.group(2));
+            restartTask(connectorName, task);
+        }
+    }
+
     public static void main(String[] args) throws IOException, InterruptedException {
         var bootstrapServers = System.getenv("KAFKA_BOOTSTRAP_SERVERS");
         var connectGroupPrefix = System.getenv("CONNECT_GROUP_PREFIX");
@@ -128,29 +149,10 @@ public class App {
                 new Config.Kafka(bootstrapServers),
                 connectGroupPrefix,
                 maxLag,
-                Duration.ofMinutes(1),
+                //Duration.ofMinutes(1),
                 new Config.KafkaConnect(url));
 
         var app = new App(config);
-
-        //Sample output:
-        // connector-consumer-SplunkSink_group_santander-1-07838100-36fa-40dc-bd4b-d5a556c3b7e8 ->
-        //   GROUP_SANTANDER_SPLUNK_SINK_JSON-6 : 68403
-        //   GROUP_SANTANDER_SPLUNK_SINK_JSON-5 : 68949
-        //   GROUP_SANTANDER_SPLUNK_SINK_JSON-7 : 64913
-        //   GROUP_SANTANDER_SPLUNK_SINK_JSON-4 : 62396
-        var lags = app.lags();
-        lags.forEach((s, topicPartitionLongMap) -> {
-            System.out.println(s + " -> ");
-            topicPartitionLongMap.forEach((topicPartition, aLong) ->
-                    System.out.println("  " + topicPartition + " : " + aLong));
-        });
-
-        for (String instance : lags.keySet()) {
-            Matcher matcher = pattern.matcher(instance);
-            var connectorName = matcher.group(1);
-            var task = Integer.parseInt(matcher.group(2));
-            app.restartTask(connectorName, task);
-        }
+        app.run();
     }
 }
