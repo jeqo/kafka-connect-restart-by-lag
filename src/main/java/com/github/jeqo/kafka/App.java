@@ -18,7 +18,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -117,9 +116,9 @@ public class App {
         //   GROUP_SANTANDER_SPLUNK_SINK_JSON-4 : 62396
         var lags = lags();
         lags.forEach((s, topicPartitionLongMap) -> {
-            System.out.println(s + " -> ");
+            LOG.info(s + " -> ");
             topicPartitionLongMap.forEach((topicPartition, aLong) ->
-                    System.out.println("  " + topicPartition + " : " + aLong));
+                    LOG.info("  " + topicPartition + " : " + aLong));
         });
 
         for (String instance : lags.keySet()) {
@@ -156,7 +155,7 @@ public class App {
                 //Duration.ofMinutes(1),
                 new Config.KafkaConnect(url));
 
-        LOG.info("Config: \n{}", config);
+        LOG.info("Kafka Connect restart by lag config: \n{}", config.toString());
 
         var app = new App(config);
         app.run();
