@@ -5,16 +5,27 @@ import org.apache.kafka.clients.admin.ConsumerGroupListing;
 import org.apache.kafka.clients.admin.KafkaAdminClient;
 import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.common.TopicPartition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class App {
+    static final Logger LOG = LoggerFactory.getLogger(App.class);
+
     final Config config;
 
     final Properties adminConfig;
@@ -83,22 +94,63 @@ public class App {
         return lags;
     }
 
-    public static void main(String[] args) {
+    static Pattern pattern = Pattern.compile("connector-consumer-(\\w+)-(\\d)-");
+
+    static HttpClient httpClient = HttpClient.newBuilder().build();
+
+    void restartTask(String connectorName, int task) throws IOException, InterruptedException {
+        var url = URI.create(config.kafkaConnect.url + "/connectors/" + connectorName + "/tasks/" + task);
+        LOG.info("Restarting connector task {}-{}", connectorName, task);
+        var httpRequest = HttpRequest.newBuilder()
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .uri(url)
+                .build();
+        var response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+        LOG.info("Result restart {}-{}", response.statusCode(), response.body());
+    }
+
+    public static void main(String[] args) throws IOException, InterruptedException {
         var bootstrapServers = System.getenv("KAFKA_BOOTSTRAP_SERVERS");
         var connectGroupPrefix = System.getenv("CONNECT_GROUP_PREFIX");
+        var url = System.getenv("KAFKA_CONNECT_URL");
+        var maxLagDefault = 100_000L;
+        var maxLagEnv = System.getenv("MAX_LAG");
+        long maxLag;
+        if (maxLagEnv != null) {
+            try {
+                maxLag = Long.parseLong(maxLagEnv);
+            } catch (NumberFormatException e) {
+                LOG.warn("Using default lag {}", maxLagDefault, e);
+                maxLag = maxLagDefault;
+            }
+        } else maxLag = maxLagDefault;
         var config = new Config(
                 new Config.Kafka(bootstrapServers),
                 connectGroupPrefix,
-                10_000L,
-                Duration.ofMinutes(1));
-
+                maxLag,
+                Duration.ofMinutes(1),
+                new Config.KafkaConnect(url));
 
         var app = new App(config);
+
+        //Sample output:
+        // connector-consumer-SplunkSink_group_santander-1-07838100-36fa-40dc-bd4b-d5a556c3b7e8 ->
+        //   GROUP_SANTANDER_SPLUNK_SINK_JSON-6 : 68403
+        //   GROUP_SANTANDER_SPLUNK_SINK_JSON-5 : 68949
+        //   GROUP_SANTANDER_SPLUNK_SINK_JSON-7 : 64913
+        //   GROUP_SANTANDER_SPLUNK_SINK_JSON-4 : 62396
         var lags = app.lags();
         lags.forEach((s, topicPartitionLongMap) -> {
-            System.out.println(s + " -> " );
+            System.out.println(s + " -> ");
             topicPartitionLongMap.forEach((topicPartition, aLong) ->
-                    System.out.println("  "+topicPartition+" : "+aLong));
+                    System.out.println("  " + topicPartition + " : " + aLong));
         });
+
+        for (String instance : lags.keySet()) {
+            Matcher matcher = pattern.matcher(instance);
+            var connectorName = matcher.group(1);
+            var task = Integer.parseInt(matcher.group(2));
+            app.restartTask(connectorName, task);
+        }
     }
 }

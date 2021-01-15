@@ -7,12 +7,14 @@ public class Config {
     final String connectGroupPrefix;
     final long maxLag;
     final Duration frequency;
+    final KafkaConnect kafkaConnect;
 
-    public Config(Kafka kafka, String connectGroupPrefix, long maxLag, Duration frequency) {
+    public Config(Kafka kafka, String connectGroupPrefix, long maxLag, Duration frequency, KafkaConnect kafkaConnect) {
         this.kafka = kafka;
         this.connectGroupPrefix = connectGroupPrefix;
         this.maxLag = maxLag;
         this.frequency = frequency;
+        this.kafkaConnect = kafkaConnect;
     }
 
     static class Kafka {
@@ -20,6 +22,14 @@ public class Config {
 
         Kafka(String bootstrapServers) {
             this.bootstrapServers = bootstrapServers;
+        }
+    }
+
+    static class KafkaConnect {
+        final String url;
+
+        KafkaConnect(String url) {
+            this.url = url;
         }
     }
 }
