@@ -109,11 +109,11 @@ public class App {
 
     void run() throws IOException, InterruptedException {
         //Sample output:
-        // connector-consumer-SplunkSink_group_santander-1-07838100-36fa-40dc-bd4b-d5a556c3b7e8 ->
-        //   GROUP_SANTANDER_SPLUNK_SINK_JSON-6 : 68403
-        //   GROUP_SANTANDER_SPLUNK_SINK_JSON-5 : 68949
-        //   GROUP_SANTANDER_SPLUNK_SINK_JSON-7 : 64913
-        //   GROUP_SANTANDER_SPLUNK_SINK_JSON-4 : 62396
+        // connector-consumer-SplunkSink_conn-1-07838100-36fa-40dc-bd4b-d5a556c3b7e8 ->
+        //   CONN_SPLUNK_SINK_JSON-6 : 68403
+        //   CONN_SPLUNK_SINK_JSON-5 : 68949
+        //   CONN_SPLUNK_SINK_JSON-7 : 64913
+        //   CONN_SPLUNK_SINK_JSON-4 : 62396
         var lags = lags();
         lags.forEach((s, topicPartitionLongMap) -> {
             LOG.info(s + " -> ");
